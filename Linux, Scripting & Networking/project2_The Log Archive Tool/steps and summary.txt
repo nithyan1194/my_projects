@@ -1,3 +1,41 @@
+Code Breakdown: Log Archive Utility
+*** 1. Robust Input Validation
+
+if [ -z "$1" ]; then
+    echo "Error: Target log directory path is required."
+    exit 1
+fi
+
+*** How it works: $1 represents the first argument passed to the script. The -z operator checks if the length of that string is zero (empty). If a user tries to run the script without specifying a folder, it halts immediately with an error code 1 instead of running blindly and failing down the line.
+
+*** 2. Defensive Directory Check
+
+if [ ! -d "$LOG_DIR" ]; then
+    echo "Error: Directory '$LOG_DIR' does not exist." >&2
+    exit 1
+fi
+
+*** How it works: The -d operator tests if the target path is a valid directory. The ! character inverts the logic ("is NOT a directory").
+
+Intermediate Touch: The >&2 operator redirects the echo text stream specifically to Standard Error (stderr) instead of Standard Output (stdout). This is crucial for corporate infrastructure logging, ensuring that error notifications are separated from normal system output logs.
+
+*** 3. Stream Compression Engine
+
+tar -czf "${ARCHIVE_DIR}/${ARCHIVE_NAME}" -C "$LOG_DIR" . 2>/dev/null
+
+*** How it works: This is the muscle of the operation. Let's look at the flags:
+
+-c: Create a new archive file.
+-z: Compress the archive using the gzip algorithm.
+-f: Specifies the destination filename.
+-C "$LOG_DIR" .: The upper-case -C tells tar to change its working directory to the log folder before running, and the dot . packages everything inside it. This prevents tar from mistakenly saving absolute host directory paths (like /var/log/...) inside the zip bundle, making the backup clean and portable.
+
+*** 4. Deterministic Fault Verification
+
+if [ $? -eq 0 ]; then
+
+*** How it works: In Linux, $? is a special variable that captures the exit status code of the immediate preceding command (in this case, the tar operation). An exit code of 0 means complete success, while anything else indicates a runtime failure. Checking this explicitly guarantees your audit logs capture a reliable record of backup states.
+
 Automated Log Archive Utility 
 
 * Context: High microservice velocity inside the production environments caused rapid local disk utilization due to
