@@ -1,0 +1,5 @@
+Run the Script
+Make it executable and run it against the log file:
+
+chmod +x nginx_analyser.sh
+./nginx_analyser.sh access.log
