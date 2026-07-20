@@ -40,3 +40,20 @@ echo -e "\n[+] HTTP RESPONSE CODE DISTRIBUTION:"
 awk '{print $9}' "$LOG_FILE" | sort | uniq -c | sort -nr
 
 echo "=========================================================="
+
+***********How the Stream Pipeline Works*****************
+
+Raw File ➔ [ awk ] ➔ [ sort ] ➔ [ uniq -c ] ➔ [ sort -nr ] ➔ Output
+
+awk '{print $1}': Extracts column 1 (IP address) from each line stream. ($7 extracts URL path, $9 extracts HTTP status code) .
+
+sort: Groups identical records together in linear sequence (required because uniq only checks adjacent lines).
+
+uniq -c: Collapses adjacent duplicate entries and prefixes them with the count (-c) of occurrences.
+
+sort -nr: Sorts the counted results numerically (-n) in reverse (-r) order (highest frequency first).
+
+head -n 5: Filters out everything except the top 5 entries
+
+
+How the Stream Pipeline Works
