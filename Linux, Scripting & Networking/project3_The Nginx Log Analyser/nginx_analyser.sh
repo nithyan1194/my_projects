@@ -2,7 +2,6 @@
 # ==============================================================================
 # Script Name:    nginx_analyser.sh
 # Description:    High-efficiency POSIX stream engine for parsing Nginx logs.
-# Tier:           Intermediate DevOps Scripting
 # ==============================================================================
 
 # Ensure target file argument is provided
