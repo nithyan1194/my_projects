@@ -1,0 +1,20 @@
+│   Bastion / Control Node      │
+                                  │   (cloud_fleet_stats.sh)      │
+                                  └───────────────┬───────────────┘
+                                                  │
+                                   1. Query AWS API via AWS CLI
+                                   (aws ec2 describe-instances)
+                                                  │
+                                                  ▼
+                                   ┌───────────────────────────────┐
+                                   │  Dynamic IP Target Inventory  │
+                                   └──────────────┬────────────────┘
+                                                  │
+                 ┌────────────────────────────────┼────────────────────────────────┐
+                 │ SSH (Ed25519 Key)              │ SSH (Ed25519 Key)              │ SSH (Ed25519 Key)
+                 ▼                                ▼                                ▼
+   ┌───────────────────────────┐    ┌───────────────────────────┐    ┌───────────────────────────┐
+   │ AWS EC2 Node 1            │    │ AWS EC2 Node 2            │    │ AWS EC2 Node 3            │
+   │ Tag: Env=Production       │    │ Tag: Env=Production       │    │ Tag: Env=Production       │
+   │ (i-0a1b2c3d4e - 54.x.x.x) │    │ (i-0f9e8d7c6b - 54.y.y.y) │    │ (i-0m1n2o3p4q - 54.z.z.z) │
+   └───────────────────────────┘    └───────────────────────────┘    └───────────────────────────┘
