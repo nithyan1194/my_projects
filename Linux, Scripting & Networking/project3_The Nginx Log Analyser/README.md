@@ -3,9 +3,8 @@ During operational incidents—such as sudden spike loads, brute-force security 
 inspecting raw multi-gigabyte log streams line-by-line introduces significant diagnostic latency and increases Mean Time to Resolution (MTTR).
 
 🚀 Objective
-The primary goal of Project 3 is to build a high-performance, stream-oriented analytical engine using POSIX-compliant shell tools.
+The primary goal of this project is to build a high-performance, stream-oriented analytical engine using POSIX-compliant shell tools.
 The utility parses live web server access logs to instantly aggregate, compute, and present critical metrics:
-
 
 Top 5 Requesting IP Addresses: Quickly isolate potential DDoS vectors or web scraping bots.
 
