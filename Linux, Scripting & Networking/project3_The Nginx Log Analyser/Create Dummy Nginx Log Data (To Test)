@@ -1,0 +1,9 @@
+cat << 'EOF' > access.log
+192.168.1.10 - - [20/Jul/2026:12:00:01 +0000] "GET /index.html HTTP/1.1" 200 1024 "-" "Mozilla/5.0"
+192.168.1.10 - - [20/Jul/2026:12:00:02 +0000] "GET /api/v1/users HTTP/1.1" 200 512 "-" "Mozilla/5.0"
+10.0.0.15 - - [20/Jul/2026:12:00:03 +0000] "GET /api/v1/users HTTP/1.1" 500 128 "-" "Mozilla/5.0"
+192.168.1.10 - - [20/Jul/2026:12:00:04 +0000] "POST /login HTTP/1.1" 401 256 "-" "Mozilla/5.0"
+172.16.0.5 - - [20/Jul/2026:12:00:05 +0000] "GET /index.html HTTP/1.1" 200 1024 "-" "Mozilla/5.0"
+10.0.0.15 - - [20/Jul/2026:12:00:06 +0000] "GET /api/v1/users HTTP/1.1" 200 512 "-" "Mozilla/5.0"
+192.168.1.10 - - [20/Jul/2026:12:00:07 +0000] "GET /favicon.ico HTTP/1.1" 404 128 "-" "Mozilla/5.0"
+EOF
