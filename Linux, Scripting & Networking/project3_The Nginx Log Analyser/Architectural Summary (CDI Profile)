@@ -1,12 +1,19 @@
 Architectural Summary (CDI Profile)
 
 ### Context
-Real-time visibility gaps during service degradation events on the web tier led to delayed incident response times. Analyzing raw multi-gigabyte text logs during traffic anomalies proved inefficient. The constraint was to develop a lightweight analytics parser using exclusively native OS utilities to calculate access rates, request volumes, and system response signatures instantly without loading large files into system RAM.
+Real-time visibility gaps during service degradation events on the web tier led to delayed incident response times.
+Analyzing raw multi-gigabyte text logs during traffic anomalies proved inefficient. The constraint was to develop a 
+lightweight analytics parser using exclusively native OS utilities to calculate access rates, request volumes, 
+and system response signatures instantly without loading large files into system RAM.
 
 ### Decision
-Selected native POSIX stream pipes (`awk`, `sort`, `uniq`) over external runtime frameworks or memory-heavy scripts. I explicitly opted not to load files into memory structures to maintain a low processing footprint, instead utilizing optimized kernel stream processing pipelines to extract target log columns (IP: `$1`, Path: `$7`, Status: `$9`) dynamically.
+Selected native POSIX stream pipes (`awk`, `sort`, `uniq`) over external runtime frameworks or memory-heavy scripts. 
+I explicitly opted not to load files into memory structures to maintain a low processing footprint, instead utilizing 
+optimized kernel stream processing pipelines to extract target log columns (IP: `$1`, Path: `$7`, Status: `$9`) dynamically.
 
 ### Impact
-* **Immediate Metrics Extraction:** Reduced MTTR during active log investigations by enabling target log profiling outputs in **<2 seconds**.
-* **Minimal Memory Profile:** Achieved a **flat memory footprint** by processing text via buffers instead of staging full multi-gigabyte files in RAM.
+* **Immediate Metrics Extraction:** Reduced MTTR during active log investigations by enabling target log profiling outputs
+in **<2 seconds**.
+* **Minimal Memory Profile:** Achieved a **flat memory footprint** by processing text via buffers instead of staging full
+multi-gigabyte files in RAM.
 * **Zero Dependency Cost:** Avoided third-party log analytical SaaS architectures for initial node troubleshooting phases.
