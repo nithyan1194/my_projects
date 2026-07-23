@@ -1,0 +1,150 @@
+#!/bin/bash
+# ==============================================================================
+# Script Name:    cloud_fleet_stats.sh
+# Description:    Dynamic AWS EC2 fleet discovery and telemetry orchestrator.
+# Tier:           Cloud Infrastructure Diagnostics
+# ==============================================================================
+
+#Global Read-Only Variables & Defaults
+# Configuration
+readonly REGION="${AWS_REGION:-us-east-1}"
+readonly SSH_KEY="${1:-~/.ssh/id_ed25519}"
+readonly SSH_USER="ec2-user"
+readonly REPORT_FILE="cloud_fleet_telemetry_$(date +'%Y%m%d_%H%M%S').log"
+readonly SSH_TIMEOUT=5
+
+************************
+readonly: Locks variables to prevent runtime accidental modification or configuration drifting.
+${AWS_REGION:-us-east-1}: Uses parameter expansion to read the host environment's AWS_REGION variable; if unset,
+it gracefully falls back to us-east-1.
+${1:-~/.ssh/id_ed25519}: Sets the SSH private key path from the first CLI argument ($1), falling back to standard Ed25519 
+identity files if omitted.
+$(date +'%Y%m%d_%H%M%S'): Appends a precise timestamp to the report log name to avoid overwriting historical execution ledgers.
+
+  **********************
+#2. Pre-flight Guard Clauses
+# Prerequisites Validation
+if ! command -v aws &> /dev/null; then
+    echo "Error: AWS CLI is not installed or not available in PATH." >&2
+    exit 1
+fi
+
+if [ ! -f "$SSH_KEY" ]; then
+    echo "Error: Specified SSH Key '$SSH_KEY' does not exist." >&2
+    echo "Usage: $0 [path_to_ssh_key]" >&2
+    exit 1
+fi
+
+************************
+command -v aws: Checks if the AWS CLI binary exists in system execution paths without throwing unwanted stdout noise.
+>&2: Redirects error messages specifically to Standard Error (stderr) to isolate failures from standard script output streams.
+[ ! -f "$SSH_KEY" ]: Verifies that the specified SSH key file exists before attempting network connections.
+
+************************
+echo "=========================================================="
+echo "          AWS EC2 FLEET DIAGNOSTIC ORCHESTRATOR           "
+echo "=========================================================="
+echo "Region:         $REGION"
+echo "Execution Time: $(date)"
+echo "----------------------------------------------------------"
+
+#3. Dynamic AWS Instance Discovery via API
+# 1. Dynamic Discovery Phase: Query running instances using AWS CLI JSON parsing
+echo "[+] Discovering active EC2 instances in region: $REGION..."
+
+INSTANCES=$(aws ec2 describe-instances \
+    --region "$REGION" \
+    --filters "Name=instance-state-name,Values=running" \
+    --query "Reservations[*].Instances[*].[InstanceId, PublicIpAddress, Tags[?Key=='Name'].Value | [0]]" \
+    --output text)
+
+************************
+aws ec2 describe-instances: Queries the AWS EC2 API endpoint.
+--filters "Name=instance-state-name,Values=running": Restricts discovery strictly to online hosts, ignoring terminated
+or stopped instances.
+--query "...": Uses JMESPath expressions on the returned JSON payload to isolate three specific fields:
+InstanceId (e.g., i-0a1b2c3d4e)
+PublicIpAddress (e.g., 54.210.10.15) 
+Tags[?Key=='Name'].Value | [0] (Extracts the Name tag, defaulting to index 0 if multiple tags exist)
+--output text: Formats the tabular data into tab-separated raw text lines , ideal for Bash stream processing loops.
+************************
+
+if [ -z "$INSTANCES" ]; then
+    echo "No running EC2 instances found in region $REGION."
+    exit 0
+fi
+
+#4. Remote Execution Payload Assembly
+# Payload Script to Execute Remotely
+REMOTE_CMD=$(cat << 'EOF'
+echo "=== HOST: $(hostname) | INSTANCE_TYPE: $(curl -s http://169.254.169.254/latest/meta-data/instance-type 2>/dev/null || echo 'N/A') ==="
+cpu_idle=$(top -bn1 | grep "Cpu(s)" | awk '{print $8}')
+cpu_use=$(awk "BEGIN {print 100 - $cpu_idle}")
+echo "CPU Utilization:    ${cpu_use}%"
+echo "Memory Utilization: $(free -h | awk 'NR==2{printf "%s / %s (%.2f%%)", $3, $2, $3/$2*100}')"
+echo "Disk Utilization:   $(df -h / | awk 'NR==2{printf "%s / %s (%s)", $3, $2, $5}')"
+echo "Top CPU Process:    $(ps -eo cmd,%cpu --sort=-%cpu | sed -n '2p')"
+echo "----------------------------------------------------------------------"
+EOF
+)
+************************
+Heredoc (cat << 'EOF'): Quotes 'EOF' to prevent local variable expansion prior to SSH execution, 
+ensuring commands run on the remote target host rather than the control host.
+
+EC2 Metadata API (169.254.169.254): Queries the instance Link-Local IP address to fetch hardware metadata (e.g., t3.micro, c5.large)
+without third-party tool dependencies.
+
+Low-Level Subsystem Parsing (free, df, top, ps): Extracts core performance telemetry using native POSIX utilities ,
+maintaining a 0 MB RAM agent overhead on target nodes.
+************************
+
+#5. Fleet Iteration & Secure SSH Ingestion
+# 2. Iteration Phase: Process target servers discovered from API
+echo "$INSTANCES" | while read -r instance_id ip name; do
+    server_name="${name:-$instance_id}"
+    
+    if [ "$ip" == "None" ] || [ -z "$ip" ]; then
+        echo -e "\n[!] Skipping $server_name ($instance_id): No public IP assigned."
+        continue
+    fi
+
+**********************
+while read -r instance_id ip name: Reads the tab-delimited AWS output stream line-by-line, dynamically assigning columns to variables.
+${name:-$instance_id}: Uses the instance ID as a fallback identifier if the instance lacks an explicit Name tag.
+[ "$ip" == "None" ]: Skips isolated target nodes that lack public-facing IP addresses to prevent SSH connection hangs.
+
+**********************
+
+    echo -e "\n[+] Connecting to Cloud Host: $server_name ($ip)..."
+#6. Non-Interactive SSH Stream Hardening
+  
+    # Execute over secure, non-interactive SSH
+    output=$(ssh -i "$SSH_KEY" \
+                 -o ConnectTimeout="$SSH_TIMEOUT" \
+                 -o BatchMode=yes \
+                 -o StrictHostKeyChecking=no \
+                 "${SSH_USER}@${ip}" "$REMOTE_CMD" 2>&1)
+
+********************
+-o ConnectTimeout=5: Enforces a strict 5-second connection threshold, preventing hanging threads on unresponsive hosts.
+-o BatchMode=yes: Disables interactive password prompts. If SSH key validation fails , the command fails immediately instead of blocking automated loops.
+-o StrictHostKeyChecking=no: Bypasses host key verification prompts during initial connections to newly provisioned, dynamic EC2 nodes.
+2>&1: Redirects standard error output into the standard output buffer to capture SSH connection failure logs alongside health stats.
+
+**************************
+#7. Deterministic Exit Verification & Logging
+  if [ $? -eq 0 ]; then
+        echo "$output"
+        echo "$output" >> "$REPORT_FILE"
+    else
+        echo "[ERROR] Connectivity failed for $server_name ($ip): $output" >&2
+        echo "[$server_name | $ip] CONNECTION_FAILED: $output" >> "$REPORT_FILE"
+    fi
+done
+
+************************
+$? -eq 0: Evaluates the exit code of the preceding SSH stream. Code 0 confirms successful remote command execution
+>> "$REPORT_FILE": Appends telemetry and error reports into a central audit log.
+************************
+echo "=========================================================="
+echo "Cloud telemetry report archived to: $REPORT_FILE"
