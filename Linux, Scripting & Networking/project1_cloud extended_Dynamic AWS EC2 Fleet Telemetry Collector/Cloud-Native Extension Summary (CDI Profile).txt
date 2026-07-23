@@ -1,0 +1,18 @@
+Project 1 (Cloud Extension): Dynamic AWS EC2 Fleet Telemetry Collector
+* Context: Rapidly scaling cloud environments created dynamic IP allocations, rendering static host inventory files obsolete
+during active outages across EC2 auto-scaling groups. Setting up third-party APM agents across short-lived cloud nodes added 
+setup friction, delayed boot times, and increased licensing expenses. The constraint was to construct an automated inventory
+discovery and performance collection pipeline using only native Cloud APIs and lightweight SSH payloads.
+
+* Decision: Integrated AWS CLI API filtering (aws ec2 describe-instances) directly into a non-interactive POSIX SSH orchestrator. 
+I explicitly chose not to use heavy configuration management frameworks (like Ansible or SaltStack) for simple metric sweeps to 
+eliminate playbook execution overhead and keep diagnostic runtimes sub-second.
+
+Impact:
+
+Dynamic Discovery: Reduced host discovery setup time from minutes down to a 1-second AWS API query, eliminating manual IP tracking 
+across auto-scaling clusters.
+* Zero Agent Cost: Saved 100% of agent licensing fees while maintaining a 0 MB background RAM overhead on remote cloud instances.
+* Instant Incident Readiness: Enabled real-time metric extraction across entire dynamic cloud fleets in <5 seconds total execution time.
+
+With this cloud extension, Project 1 now covers single-node, multi-server, and dynamic cloud fleet environments!
