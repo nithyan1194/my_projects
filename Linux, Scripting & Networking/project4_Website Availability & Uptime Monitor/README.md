@@ -33,6 +33,7 @@ of edge points creates massive DevOps overhead
 Step 1: Writing the Script
 1. Create the targets list (targets.txt)
 2. Create the script (uptime_monitor.sh)
+
 Step 2: Run & Verify
 1. Grant execution permissions
 2. Run the script
