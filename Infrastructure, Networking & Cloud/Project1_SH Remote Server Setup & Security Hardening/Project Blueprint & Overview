@@ -1,0 +1,21 @@
+[ Attacker / Bot Scans ]
+                                                 │
+                                                 ▼
+                                        [ Port 22: BLOCKED ]
+                                                 │
+                                                 ▼
+  [ Admin Workstation ] ─── SSH Key (Ed25519) ───► [ Port 2222: ALLOWED ]
+                                                 │
+                                                 ▼
+                                     ┌───────────────────────┐
+                                     │  Hardened Linux Host  │
+                                     │  • Password Auth: OFF │
+                                     │  • Root Login: OFF    │
+                                     │  • UFW Firewall: ON   │
+                                     │  • Sudo User: deploy  │
+                                     └───────────────────────┘
+
+Objective
+Provision a raw Linux remote host (or VM / Cloud instance) and transform it into a hardened, production-ready server. 
+You will configure passwordless SSH key authentication, disable high-risk attack vectors (root logins & password prompts), 
+change the default SSH port, configure an active firewall (UFW), and set up a non-root administrative user with scoped sudo privileges.
