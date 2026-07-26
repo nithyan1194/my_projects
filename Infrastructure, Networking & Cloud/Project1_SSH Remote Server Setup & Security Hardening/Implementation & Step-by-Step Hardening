@@ -1,0 +1,204 @@
+Step-by-Step Implementation Guide
+Step 1: Generate Secure SSH Key Pair (Ed25519)
+
+On your local machine, generate a high-security Ed25519 SSH key pair  (more secure and faster than traditional RSA):
+# Generate key pair on local machine
+ssh-keygen -t ed25519 -C "admin@devops-portfolio" -f ~/.ssh/id_ed25519_hardened
+
+Step 1: Copy Your .pem Key into WSL
+Run these commands in your local WSL terminal (nithyan@DESKTOP-DOG7Q9U):
+
+# 1. Ensure your local .ssh directory exists and is owned by you
+mkdir -p ~/.ssh
+sudo chown -R $USER:$USER ~/.ssh
+chmod 700 ~/.ssh
+
+# 2. Copy the .pem key from your Windows Downloads folder into WSL
+cp /mnt/c/Users/Nithya/Downloads/shskey1.pem ~/.ssh/sshskey1.pem
+
+# 3. Set strict read-only permissions (OpenSSH requires 0400)
+chmod 400 ~/.ssh/sshskey1.pem
+
+Step 2: Test Connecting to Your New EC2 Instance
+Now test connecting using the localized .pem key. Replace <NEW_INSTANCE_IP> with your new EC2 instance's public IP address:
+
+ssh -i ~/.ssh/sshskey1.pem ubuntu@50.17.160.133
+***********
+Step 2: Set Up Your Hardened Ed25519 Key on EC2
+Run this single reset command on the EC2 server terminal to create a clean ~/.ssh directory and open the authorized_keys file in nano:
+
+sudo rm -rf ~/.ssh && mkdir -p ~/.ssh && touch ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys && nano ~/.ssh/authorized_keys
+
+On your local machine (in WSL), open a second terminal tab and view your hardened public key:
+
+cat ~/.ssh/id_ed25519_hardened.pub
+
+opy the entire string starting with ssh-ed25519 ....
+
+Paste it inside nano on your EC2 session.
+
+Press Ctrl + O, then Enter to save, and Ctrl + X to exit.
+
+Type exit to disconnect from EC2.
+
+Step 3: Test Passwordless Login with Hardened Key
+Now test connecting from your local WSL terminal using your hardened key without the .pem file:
+
+ssh -i ~/.ssh/id_ed25519_hardened ubuntu@50.17.160.133
+
+If the above command is excecuted sucesfully then Passwordless login with your hardened Ed25519 key is working smoothly.
+
+Now let's execute the full server security lockdown on our EC2 instance.
+
+Step 4: Complete Security Hardening (Run on EC2)
+Run these commands directly in your EC2 terminal session:
+
+1. Create Non-Root deploy User & Copy SSH Keys
+
+# Create the deploy user and add to sudo group
+sudo adduser --disabled-password --gecos "" deploy
+sudo usermod -aG sudo deploy
+
+# Give deploy user passwordless sudo privileges (required for automation)
+echo "deploy ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/deploy
+
+# Copy your authorized_keys to deploy user
+sudo mkdir -p /home/deploy/.ssh
+sudo cp ~/.ssh/authorized_keys /home/deploy/.ssh/
+sudo chown -R deploy:deploy /home/deploy/.ssh
+sudo chmod 700 /home/deploy/.ssh
+sudo chmod 600 /home/deploy/.ssh/authorized_keys
+
+2. Update SSH Daemon Settings
+
+Open the SSH configuration file:
+sudo nano /etc/ssh/sshd_config
+
+Use Ctrl + W to search and update (or add) these three directives:
+Change Port 22 to Port 2222 (make sure to remove # if present)
+PermitRootLogin no
+PasswordAuthentication no
+Save and exit: Ctrl + O  Ctrl + X.
+
+3. Configure UFW Firewall
+
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 2222/tcp comment 'Custom SSH Port'
+sudo ufw allow 80/tcp comment 'HTTP'
+sudo ufw allow 443/tcp comment 'HTTPS'
+sudo ufw enable
+
+CRITICAL: AWS Security Group Rule
+Before restarting SSH, open your AWS EC2 Console:
+Go to EC2 $\rightarrow$ Instances $\rightarrow$ Click your instance.
+Under the Security tab, click your Security Group.
+Click Edit Inbound Rules $\rightarrow$ Add Rule:
+Type: Custom TCPPort 
+Range: 2222
+Source: 0.0.0.0/0 (Anywhere IPv4)
+Click Save rules.
+
+4. Restart SSH Daemon
+Once the AWS Security Group rule is added, test and restart SSH:
+
+sudo sshd -t
+sudo systemctl restart ssh
+
+Step 5: Test Hardened Connection
+Open a new tab in your local WSL terminal and run:
+
+ssh -i ~/.ssh/id_ed25519_hardened -p 2222 deploy@<YOUR_INSTANCE_IP>
+
+
+*********
+
+**************
+
+# Copy public key to remote server (replace IP and user)
+ssh-copy-id -i ~/.ssh/id_ed25519_hardened.pub root@50.17.160.133
+
+Step 2: Create a Scoped Non-Root User
+Connect to the server and create a dedicated administrative user  (never run operations as raw root):
+
+# Connect as root
+ssh root@<REMOTE_SERVER_IP>
+
+# Create new admin user 'deploy'
+adduser deploy
+
+# Grant sudo privileges
+usermod -aG sudo deploy
+
+# Transfer SSH authorization keys from root to deploy user
+mkdir -p /home/deploy/.ssh
+cp ~/.ssh/authorized_keys /home/deploy/.ssh/
+chown -R deploy:deploy /home/deploy/.ssh
+chmod 700 /home/deploy/.ssh
+chmod 600 /home/deploy/.ssh/authorized_keys
+
+Step 3: Hardening SSH Daemon Configuration
+Modify the OpenSSH server daemon configuration file to enforce strict security policies:
+
+# Backup original configuration
+sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
+
+# Edit sshd_config
+sudo nano /etc/ssh/sshd_config
+
+Apply the following hardening directives inside /etc/ssh/sshd_config:
+
+# 1. Change default port to reduce automated bot scan noise
+Port 2222
+
+# 2. Disable root login over SSH
+PermitRootLogin no
+
+# 3. Disable password authentication (Enforce SSH Keys only)
+PasswordAuthentication no
+ChallengeResponseAuthentication no
+PubkeyAuthentication yes
+
+# 4. Limit maximum authentication attempts per connection
+MaxAuthTries 3
+
+# 5. Disable empty passwords and X11 forwarding
+PermitEmptyPasswords no
+X11Forwarding no
+
+
+Step 4: Configure Uncomplicated Firewall (UFW)
+Before restarting SSH, configure UFW  so you don't lock yourself out!
+
+# Set default traffic policies
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+# Allow custom SSH port (Port 2222)
+sudo ufw allow 2222/tcp comment 'Custom SSH Port'
+
+# Allow standard web ports (for future application deployment)
+sudo ufw allow 80/tcp comment 'HTTP'
+sudo ufw allow 443/tcp comment 'HTTPS'
+
+# Enable firewall
+sudo ufw enable
+
+# Verify active rules
+sudo ufw status verbose
+
+
+Step 5: Restart SSH & Test Connections
+Apply the SSH changes and verify connection status:
+
+# Test SSH syntax validity before restarting
+sudo sshd -t
+
+# Restart SSH service
+sudo systemctl restart ssh
+
+# DO NOT CLOSE YOUR CURRENT TERMINAL! Open a NEW terminal to test logging in:
+ssh -i ~/.ssh/id_ed25519_hardened -p 2222 deploy@<REMOTE_SERVER_IP>
+
+
+
