@@ -24,7 +24,7 @@ sudo systemctl reload nginx
 
 
 
-*************************
+**************************************************
 
 Code Explanation
 sudo ufw allow 22/tcp: Opens port 22 for TCP traffic, which is the standard port for SSH (Secure Shell). 
@@ -42,4 +42,4 @@ Why You Need This   [ Internet ]
 Default Deny Policy: Once enabled, UFW blocks all incoming connections by default.Prevents Lockouts: Without the port 22 rule, enabling the firewall would instantly disconnect your remote session and lock you out of the server.Reduces Attack Surface: It shuts down access to thousands of unused ports, blocking hackers from scanning or exploiting background software vulnerabilities.Enables Web Traffic: It deliberately carves out a pathway (port 80) so legitimate web visitors can reach your hosted applications.
 
 
-*************
+**************************************************
