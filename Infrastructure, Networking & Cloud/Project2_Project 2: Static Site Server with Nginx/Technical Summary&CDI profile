@@ -1,0 +1,21 @@
+Key Achievements:
+Nginx Web Server Provisioning: Installed, configured, and managed the Nginx web engine on Ubuntu.
+
+Custom Document Root: Created /var/www/static-site/public and assigned non-root user permissions.
+
+Virtual Host Configuration: Built a custom site block in /etc/nginx/sites-available/static-site and linked it to /etc/nginx/sites-enabled/.
+
+Performance & Security Tuning: Enabled 30-day client-side static asset caching (expires 30d) alongside security headers (X-Frame-Options, X-Content-Type-Options).
+
+AWS & Firewall Networking: Allowed inbound HTTP traffic on Port 80 across both UFW and AWS Security Groups.
+
+Technical Architecture & Key Components
+
+| Component           | Setting / Path                          | Purpose / Benefit                                                     |
+|---------------------|-----------------------------------------|-----------------------------------------------------------------------|
+| Web Root            | /var/www/static-site/public             | Isolated directory structure for web files.                           |
+| Virtual Host Config | /etc/nginx/sites-available/static-site  | Modular site configuration separated from main Nginx config.          |
+| Active Symlink      | /etc/nginx/sites-enabled/static-site    | Enables the site without altering base /etc/nginx/nginx.conf.         |
+| Asset Caching       | expires 30d;                            | Forces browser caching for images, CSS, and JS to reduce server load. |
+| Security Headers    | X-Frame-Options, X-Content-Type-Options | Protects against MIME-sniffing and clickjacking attacks.              
+
