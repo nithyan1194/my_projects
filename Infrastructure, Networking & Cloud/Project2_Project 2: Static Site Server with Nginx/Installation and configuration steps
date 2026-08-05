@@ -1,0 +1,106 @@
+Step 1: Connect to Your New Instance (Standard Port 22)
+Once your new instance is running, connect to it
+
+Connect to EC2 using default Port 22 and default 'ubuntu' user
+ssh -i ~/.ssh/your-new-key.pem ubuntu@<NEW_INSTANCE_IP>
+
+Step 2: Install Nginx
+Once inside your new server, update package repositories and install Nginx:
+
+# Update repository index and install Nginx
+sudo apt update && sudo apt install -y nginx
+
+# Verify Nginx is active and running
+sudo systemctl status nginx --no-pager
+
+● nginx.service - A high performance web server and a reverse proxy server
+     Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled; preset: enabled)
+     Active: active (running) since Wed 2026-08-05 07:41:55 UTC; 25s ago
+
+Step 3: Provision Document Root & Sample Webpage
+Create the directory structure for your web server under /var/www/static-site/public:
+
+# 1. Create document root directory
+sudo mkdir -p /var/www/static-site/public
+
+# 2. Assign ownership to the current ubuntu user
+sudo chown -R ubuntu:ubuntu /var/www/static-site
+
+# 3. Create sample index.html page
+cat <<'EOF' > /var/www/static-site/public/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Static Site</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; text-align: center; margin-top: 10%; background: #0f172a; color: #f8fafc; }
+        .card { background: #1e293b; display: inline-block; padding: 2.5rem 4rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
+        h1 { color: #38bdf8; margin-bottom: 0.5rem; }
+        p { color: #94a3b8; font-size: 1.1rem; }
+        .badge { display: inline-block; background: #0369a1; color: #e0f2fe; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; margin-top: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🚀 DevOps Web Server Online</h1>
+        <p>Served via Nginx on Clean Ubuntu EC2</p>
+        <span class="badge">Phase 2 • Project 2 Active</span>
+    </div>
+</body>
+</html>
+EOF
+
+Step 4: Configure Nginx Virtual Host (server block)
+Create a custom site configuration file:
+
+sudo nano /etc/nginx/sites-available/static-site
+
+Paste the following site block into nano:
+server {
+    listen 80;
+    listen [::]:80;
+
+    server_name _;
+    root /var/www/static-site/public;
+    index index.html;
+
+    # Performance & Hardening
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # Static Asset Caching (30 Days)
+    location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff2)$ {
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
+    }
+}
+
+
+Save and exit (Ctrl + O $\rightarrow$ Enter $\rightarrow$ Ctrl + X).
+
+Step 5: Enable Site & Reload Nginx
+Link your new virtual host configuration, disable the default Nginx placeholder page, test syntax, and reload:
+
+# 1. Enable new virtual host configuration
+sudo ln -s /etc/nginx/sites-available/static-site /etc/nginx/sites-enabled/
+
+# 2. Disable Nginx default placeholder page
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# 3. Test Nginx configuration syntax
+sudo nginx -t
+
+# 4. Reload Nginx service
+sudo systemctl reload nginx
+
+Step 6: Verify in Your Browser
+Open your browser and navigate to your new EC2 instance's public IP:
+
+http://<NEW_INSTANCE_IP>
+
