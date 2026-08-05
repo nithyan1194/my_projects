@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -e
+
+# 1. Update system & install dependencies
+sudo apt-get update -y
+sudo apt-get install -y nginx ufw
+
+# 2. Provision Directory & Permissions
+sudo mkdir -p /var/www/static-site/public
+sudo chown -R $USER:$USER /var/www/static-site
+
+# 3. Configure Firewall
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+echo "y" | sudo ufw enable
+
+# 4. Deploy Nginx Configuration
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo ln -sf /etc/nginx/sites-available/static-site /etc/nginx/sites-enabled/
+
+# 5. Syntax Audit & Service Reload
+sudo nginx -t
+sudo systemctl reload nginx
