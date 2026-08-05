@@ -21,3 +21,25 @@ sudo ln -sf /etc/nginx/sites-available/static-site /etc/nginx/sites-enabled/
 # 5. Syntax Audit & Service Reload
 sudo nginx -t
 sudo systemctl reload nginx
+
+
+
+*************************
+
+Code Explanation
+sudo ufw allow 22/tcp: Opens port 22 for TCP traffic, which is the standard port for SSH (Secure Shell). 
+This ensures you do not lose your remote connection to the server.
+sudo ufw allow 80/tcp: Opens port 80 for TCP traffic, which is the standard port for unencrypted HTTP web traffic.
+This allows users to access websites hosted on the server.
+echo "y" | sudo ufw enable: Automatically turns on the firewall.
+The echo "y" | part pipes a "yes" response into the command, bypassing the interactive prompt that warns you about 
+potentially disrupting existing SSH connections.
+
+Why You Need This   [ Internet ]
+        │
+   (Port 22/80) ──> [ UFW Firewall ] ──> [ Server Services ]
+   (Other Ports) ─X─> [ Blocked ]
+Default Deny Policy: Once enabled, UFW blocks all incoming connections by default.Prevents Lockouts: Without the port 22 rule, enabling the firewall would instantly disconnect your remote session and lock you out of the server.Reduces Attack Surface: It shuts down access to thousands of unused ports, blocking hackers from scanning or exploiting background software vulnerabilities.Enables Web Traffic: It deliberately carves out a pathway (port 80) so legitimate web visitors can reach your hosted applications.
+
+
+*************
