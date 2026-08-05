@@ -90,8 +90,41 @@ Link your new virtual host configuration, disable the default Nginx placeholder 
 # 1. Enable new virtual host configuration
 sudo ln -s /etc/nginx/sites-available/static-site /etc/nginx/sites-enabled/
 
+*********
+Why Nginx Uses Two Folders (sites-available vs sites-enabled)
+Nginx uses this two-folder pattern to separate configuration storage from active deployment:
+
+/etc/nginx/sites-available/ (The Storage Room):
+Holds all configuration files you've written for various websites, whether they are live or offline. Nginx ignores files in this directory by default.
+
+/etc/nginx/sites-enabled/ (The Live Stage):
+Inside the main /etc/nginx/nginx.conf file, Nginx includes an import rule: include /etc/nginx/sites-enabled/*;. Anything inside this folder is active on the server.
+
+⚙️ Practical Benefits
+Zero File Duplication: Creating a symlink means you only edit the file once in sites-available. The link in sites-enabled automatically reflects any changes.
+
+Instant Site Toggling:
+
+To enable a site: Create the symlink (sudo ln -s ...).
+
+To disable a site: Delete only the symlink (sudo rm /etc/nginx/sites-enabled/static-site). Your original file in sites-available remains completely safe.
+
+*********
+
 # 2. Disable Nginx default placeholder page
 sudo rm -f /etc/nginx/sites-enabled/default
+
+*********Deleting that file disables Nginx's built-in default placeholder website.
+It Prevents Site Conflicts (Routing Overlaps)
+By default, Ubuntu ships Nginx with a sample welcome page configured in /etc/nginx/sites-available/default and linked into /etc/nginx/sites-enabled/default.
+
+That default config is set up to capture all incoming HTTP requests on Port 80 (listen 80 default_server;). If left active alongside your new site:
+
+Nginx may get confused about which site to serve.
+
+Visitors going to [http://50.17.122.32](http://50.17.122.32) might see the standard "Welcome to nginx!" page instead of your DevOps project.
+
+*********
 
 # 3. Test Nginx configuration syntax
 sudo nginx -t
