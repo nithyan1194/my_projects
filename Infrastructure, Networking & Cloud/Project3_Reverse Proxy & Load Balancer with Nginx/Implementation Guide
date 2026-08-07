@@ -1,0 +1,117 @@
+Step-by-Step Implementation Guide
+
+Step 1: Provision Backend Node.js Applications
+Log into your EC2 instance and create two lightweight, isolated Node.js applications:
+
+# Create application directories
+mkdir -p ~/app1 ~/app2
+
+# App Instance 1 (Port 3001)
+cat <<'EOF' > ~/app1/server.js
+const http = require('http');
+const PORT = 3001;
+
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/html' });
+  res.end(`
+    <div style="font-family: sans-serif; text-align: center; padding: 3rem; background: #0f172a; color: #38bdf8;">
+      <h1>🟢 Backend App Instance 1</h1>
+      <p>Served from internal port <strong>3001</strong></p>
+    </div>
+  `);
+}).listen(PORT, () => console.log(`App 1 running on port ${PORT}`));
+EOF
+
+# App Instance 2 (Port 3002)
+cat <<'EOF' > ~/app2/server.js
+const http = require('http');
+const PORT = 3002;
+
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/html' });
+  res.end(`
+    <div style="font-family: sans-serif; text-align: center; padding: 3rem; background: #0f172a; color: #a855f7;">
+      <h1>🟣 Backend App Instance 2</h1>
+      <p>Served from internal port <strong>3002</strong></p>
+    </div>
+  `);
+}).listen(PORT, () => console.log(`App 2 running on port ${PORT}`));
+EOF
+
+
+
+Step 2: Manage Backend Daemons via PM2
+Install pm2 globally to manage the backend node processes persistently:
+
+# Install Node.js & PM2
+sudo apt update && sudo apt install -y nodejs npm
+sudo npm install -g pm2
+
+# Start both applications
+pm2 start ~/app1/server.js --name "app-1"
+pm2 start ~/app2/server.js --name "app-2"
+
+# Verify execution status
+pm2 list
+
+
+Step 3: Configure Nginx Upstream Pool & Virtual Host
+Create a new Nginx configuration file in sites-available:
+
+sudo nano /etc/nginx/sites-available/load-balancer
+
+Paste the following production load-balancer block:
+
+# 1. Define Upstream Backend Application Pool
+upstream node_backend_pool {
+    # Round-Robin Balancing (Default) with Passive Health Checks
+    server 127.0.0.1:3001 max_fails=3 fail_timeout=10s;
+    server 127.0.0.1:3002 max_fails=3 fail_timeout=10s;
+}
+
+# 2. Virtual Host Edge Server
+server {
+    listen 80;
+    listen [::]:80;
+
+    server_name _;
+
+    location / {
+        # Forward ingress traffic to the upstream pool
+        proxy_pass http://node_backend_pool;
+
+        # Disable response caching for real-time load testing
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+        proxy_hide_header Cache-Control;
+
+        # Proxy Headers for preserving client metadata
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Timeout configurations
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 60s;
+    }
+}
+
+
+Step 4: Enable Site & Reload Nginx
+Link the configuration, verify syntax, and reload Nginx:
+
+# 1. Disable previous default/static sites if active
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo rm -f /etc/nginx/sites-enabled/static-site
+
+# 2. Enable load balancer configuration
+sudo ln -sf /etc/nginx/sites-available/load-balancer /etc/nginx/sites-enabled/
+
+# 3. Test configuration syntax
+sudo nginx -t
+
+# 4. Reload Nginx without dropping connections
+sudo systemctl reload nginx
+
+
+
