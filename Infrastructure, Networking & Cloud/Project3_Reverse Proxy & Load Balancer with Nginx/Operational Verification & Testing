@@ -1,0 +1,20 @@
+1. Verification via curl Pipeline
+Run a sequential loop from your local terminal to confirm that incoming requests alternate between backend nodes in a Round-Robin pattern:
+
+for i in {1..4}; do curl -s http://<YOUR_EC2_PUBLIC_IP> | grep "Instance"; done
+
+
+Expected Output:
+
+<h1>🟢 Backend App Instance 1</h1>
+      <h1>🟣 Backend App Instance 2</h1>
+      <h1>🟢 Backend App Instance 1</h1>
+      <h1>🟣 Backend App Instance 2</h1>
+
+2. Failover Resilience Test
+Simulate an outage by stopping app-1:
+
+pm2 stop app-1
+
+Re-run the curl test sweep. Nginx will detect the failed node and automatically pass 100% of live traffic to app-2 without returning 502 Bad Gateway errors to the client!
+
