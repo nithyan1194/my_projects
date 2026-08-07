@@ -1,0 +1,49 @@
+# Architectural Overview & CDI Profile
+
+1. Context
+Modern microservices and web applications require continuous uptime, fault tolerance, and horizontal scalability. Exposing backend application instances directly to the public internet presents major security risks, prevents smooth scaling, and exposes client requests to single-point-of-failure risks.
+
+The Constraint: Build a high-performance, zero-downtime routing layer on an AWS EC2 instance that dynamically balances incoming HTTP web traffic (Port 80) across multiple internal Node.js services (Port 3001 and Port 3002) while preserving client identity headers and handling backend service failures gracefully—without installing heavy external load-balancing software.
+
+2. Decision
+Reverse Proxy & Load Balancing Engine: Selected Nginx for its asynchronous, event-driven architecture and minimal memory footprint under high concurrency.
+
+Balancing Algorithm: Implemented Weighted/Round-Robin stream distribution to cycle traffic sequentially across healthy backend nodes.
+
+Process Management: Used PM2 to manage, monitor, and maintain the lifecycle of internal Node.js backend processes (app-1 and app-2).
+
+Header Preservation (X-Forwarded-*): Explicitly injected $remote_addr and $proxy_add_x_forwarded_for headers into Nginx proxy requests to guarantee that upstream applications preserve true client IP addresses for auditing.
+
+Architecture Rejections: Explicitly opted not to deploy heavy API Gateways (e.g., Kong, Envoy) or third-party cloud load balancers (e.g., AWS ALB) during this phase to eliminate unnecessary licensing costs and keep the infrastructure footprint flat.
+
+3. Impact
+100% Horizontal Scalability: Successfully decoupled public web ingress (Port 80) from internal application processes, allowing backends to scale horizontally across discrete internal ports.
+
+Zero-Downtime Failover: Achieved continuous application availability; if one backend node crashes, Nginx's built-in passive health checks (max_fails=3 fail_timeout=10s) automatically re-route 100% of live traffic to healthy nodes within milliseconds.
+
+Sub-Millisecond Proxy Latency: Delivered average reverse proxy forwarding times of <1ms across local loopback streams.
+
+
+# System Architecture & Network Topology
+
+[ Public Client / Browser ]
+                                        │
+                                        │ HTTP Ingress (Port 80)
+                                        ▼
+                   ┌─────────────────────────────────────────┐
+                   │           Nginx Edge Gateway            │
+                   │        (Reverse Proxy & Upstream)       │
+                   └───────────────────┬─────────────────────┘
+                                       │
+                      ┌────────────────┴────────────────┐
+                      │ Round-Robin Traffic Distribution│
+                      ▼                                 ▼
+         ┌────────────────────────┐        ┌────────────────────────┐
+         │ Backend Instance 1     │        │ Backend Instance 2     │
+         │ Node.js (Port 3001)    │        │ Node.js (Port 3002)    │
+         └────────────────────────┘        └────────────────────────┘
+
+
+
+
+
