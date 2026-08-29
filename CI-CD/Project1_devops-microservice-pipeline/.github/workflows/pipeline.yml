@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "main" ]
 
+  # This enables the manual "Run workflow" button
+  workflow_dispatch: 
+
 jobs:
   # JOB 1: Continuous Integration (Test)
   unit-tests:
