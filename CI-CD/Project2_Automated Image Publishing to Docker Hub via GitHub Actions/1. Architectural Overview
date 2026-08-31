@@ -1,0 +1,29 @@
+This project builds on our tested Flask microservice by automating container registry delivery.
+Every push to the main branch verifies code quality via automated unit tests and, upon success, builds, multi-tags, and pushes an immutable Docker image to Docker Hub.
+
+This project upgrades a standard build-and-test workflow into a complete Continuous Delivery (CD) pipeline.
+ On every push to the main branch, the pipeline verifies code quality with automated unit tests and securely builds, tags, and pushes an immutable Docker image to Docker Hub.
+
+[ Developer Machine ] 
+       │ git push origin main
+       ▼
+[ GitHub Repository ]
+       │ Triggers Webhook
+       ▼
+[ GitHub Actions CI/CD Runner ]
+       ├── Job 1: unit-tests (Continuous Integration)
+       │     ├── 1. Checkout repository files
+       │     ├── 2. Set up Python 3.11 environment
+       │     ├── 3. Install requirements (Flask, Pytest)
+       │     └── 4. Execute test suite (`python -m pytest`)
+       │
+       └── Job 2: build-and-package (Continuous Delivery)
+             │ (Requires Job 1 to succeed)
+             ├── 1. Checkout repository files
+             ├── 2. Set up Docker Buildx
+             ├── 3. Authenticate to Docker Hub via GitHub Secrets
+             └── 4. Build & Push image with multi-tagging:
+                   ├── `:latest`
+                   └── `:${{ github.sha }}`
+
+

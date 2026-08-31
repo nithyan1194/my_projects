@@ -1,0 +1,6 @@
+Component                | Purpose                                                                                                                                    |
+|--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| GitHub Actions Secrets   | Stores sensitive registry credentials (DOCKER_USERNAME, DOCKER_PASSWORD) using asymmetric encryption without exposing them in source code. |
+| docker/login-action      | Automates authentication against Docker Hub inside the ephemeral CI runner.                                                                |
+| docker/build-push-action | Builds the image using Buildx tooling and publishes it directly to the container registry.                                                 |
+| Multi-Tagging Strategy   | Attaches both a mutable :latest tag for convenience and an immutable :${{ github.sha }} tag for traceable rollbacks and auditability.      |
