@@ -11,7 +11,7 @@ Pull and run the published container locally:
 docker pull <YOUR_DOCKER_USERNAME>/devops-flask-app:latest
 
 # Run the container in detached mode
-docker run -d -p 5000:5000 --name published-flask-app <YOUR_DOCKER_USERNAME>/devops-flask-app:latest
+docker run -d -p 5000:5000 --name published-flask-app nithyanallasamy/devops-flask-app:latest
 
 # Verify active endpoints
 curl http://localhost:5000/
