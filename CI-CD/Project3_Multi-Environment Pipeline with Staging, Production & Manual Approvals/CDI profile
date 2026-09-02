@@ -1,0 +1,29 @@
+
+
+Context
+
+Releasing changes directly to production after unit tests introduces high risk, as environment discrepancies and integration faults can bypass isolated test suites.
+
+Enterprise governance requires staging verification and deliberate human oversight before code reaches end users.
+
+The team needed an automated progression path that validates artifacts in a non-production environment, executes automated smoke checks, and pauses for explicit stakeholder approval.
+
+Decision
+
+Environment-Centric CI/CD Architecture: Configured GitHub Environments (staging and production) to isolate runtime variables and deployment policies.
+
+Automated Smoke Testing: Added an intermediate staging-smoke-test job running directly after staging deployment to validate API health before human intervention.
+
+Manual Approval Protection Gate: Enforced an Environment Protection Rule on production requiring manual review and sign-off via the GitHub Actions UI.
+
+Context-Driven Secrets & Variables: Injected scoped environment variables (vars.ENVIRONMENT_NAME) so the same workflow dynamically configures itself depending on target stage.
+
+Impact
+
+Blast Radius Minimization: Issues and regression bugs are caught in Staging during automated smoke testing, completely eliminating unvetted pushes to production.
+
+Enforced Compliance & Governance: Replaced untracked manual deployments with an audited, gated approval trail where every production release requires sign-off from designated reviewers.
+
+Pipeline Predictability: Established a clean, linear promotion path 
+
+(Test → Deploy Staging → Smoke Test → Approve → Deploy Production) mirroring tier-1 enterprise standards.

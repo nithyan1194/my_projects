@@ -1,0 +1,1 @@
+In this project, we elevate our pipeline to an enterprise-grade release workflow. Instead of deploying directly to production, the pipeline will deploy to a Staging environment, run automated integration/smoke tests, and require a Manual Approval Gate before deploying to Production.

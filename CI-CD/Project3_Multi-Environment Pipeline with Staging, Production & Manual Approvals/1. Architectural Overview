@@ -1,0 +1,27 @@
+[ Git Push to main ]
+         │
+         ▼
+┌─────────────────────────┐
+│   Job 1: unit-tests     │ ──► Pytest Suite (CI)
+└─────────────────────────┘
+         │ (Success)
+         ▼
+┌─────────────────────────┐
+│ Job 2: deploy-staging   │ ──► Deploy to Staging Environment
+└─────────────────────────┘
+         │
+         ▼
+┌─────────────────────────┐
+│ Job 3: staging-smoke-test│ ──► Run Automated Smoke & Health Checks
+└─────────────────────────┘
+         │ (Success)
+         ▼
+┌─────────────────────────┐
+│  MANUAL APPROVAL GATE   │ ──► GitHub Actions Environment Protection Rule
+│  (Required Reviewer)    │     (Halts pipeline until approved by you)
+└─────────────────────────┘
+         │ (Approved)
+         ▼
+┌─────────────────────────┐
+│ Job 4: deploy-production│ ──► Deploy to Production Environment
+└─────────────────────────┘

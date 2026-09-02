@@ -1,0 +1,129 @@
+Step 1: Configure GitHub Environments
+In your GitHub repository, navigate to Settings → Environments (in the left sidebar).
+
+Click New environment.
+
+Name it staging and click Configure environment.
+
+Under Environment variables, click Add variable:
+
+Name: ENVIRONMENT_NAME
+
+Value: staging
+
+Go back to Environments and click New environment.
+
+Name it production and click Configure environment.
+
+Under Environment protection rules, check Required reviewers.
+
+Add your GitHub username as a reviewer.
+
+Under Environment variables, click Add variable:
+
+Name: ENVIRONMENT_NAME
+
+Value: production
+
+Step 2: Update .github/workflows/pipeline.yml
+Replace your existing workflow file with the multi-environment pipeline:
+
+name: Multi-Environment CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # JOB 1: Continuous Integration (Unit Tests)
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.4.0
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Pytest Suite
+        run: |
+          python -m pytest
+
+  # JOB 2: Deploy to Staging Environment
+  deploy-staging:
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: staging
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4.2.2
+
+      - name: Simulate Staging Deployment
+        run: |
+          echo "Deploying commit ${{ github.sha }} to ${{ vars.ENVIRONMENT_NAME }}..."
+          # In real-world setups, this is where Terraform, Helm, or AWS ECS commands run
+          echo "Staging deployment successful!"
+
+  # JOB 3: Staging Automated Smoke Checks
+  staging-smoke-test:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Run Staging Smoke Tests
+        run: |
+          echo "Validating health probes in Staging..."
+          echo "Simulated: curl http://staging.internal/health -> 200 OK"
+          echo "Staging verification passed!"
+
+  # JOB 4: Deploy to Production (Gated by Required Reviewer)
+  deploy-production:
+    needs: staging-smoke-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4.2.2
+
+      - name: Execute Production Rollout
+        run: |
+          echo "Deploying verified commit ${{ github.sha }} to ${{ vars.ENVIRONMENT_NAME }}..."
+          echo "Production deployment live!"
+
+
+Step 3: Commit and Push the Workflow
+Run these commands in your local repository:
+
+git add .github/workflows/pipeline.yml
+git commit -m "Configure multi-environment pipeline with staging, smoke tests, and production gate"
+git push origin main
+
+
+Step 4: Verify the Manual Approval Gate
+
+Head over to the Actions tab on GitHub and open the latest workflow run.
+
+Watch unit-tests, deploy-staging, and staging-smoke-test complete with green checkmarks.
+
+Observe that the pipeline pauses at deploy-production with an amber status: "Waiting for review".
+
+Click Review deployments, select the production checkbox, and click Approve and deploy.
+
+Watch deploy-production execute to completion!

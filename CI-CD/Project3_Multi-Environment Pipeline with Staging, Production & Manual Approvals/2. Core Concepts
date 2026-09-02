@@ -1,0 +1,7 @@
+GitHub Environments: Defining distinct targets (staging vs. production) within your repository.
+
+Environment Protection Rules (Manual Gates): Enforcing a mandatory reviewer sign-off before production jobs can run.
+
+Environment-Specific Secrets & Variables: Injecting different configurations (e.g., APP_ENV=staging vs. APP_ENV=production) depending on the active stage.
+
+Automated Smoke Testing: Post-deployment validation running against live container URLs.
