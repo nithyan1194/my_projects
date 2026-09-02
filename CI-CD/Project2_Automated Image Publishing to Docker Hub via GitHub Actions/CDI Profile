@@ -1,0 +1,29 @@
+Context
+
+The microservice (Python/Flask) required a reliable, automated release pipeline to replace error-prone manual builds and local testing.
+
+Initial pipeline implementations only validated builds on ephemeral CI runners without persisting or distributing deployable artifacts.
+
+Production deployments required an accessible, centralized registry with consistent versioning to enable seamless rollouts and rollbacks across environments.
+
+Decision
+
+Automated Registry Delivery: Integrated Docker Hub using official GitHub Actions (docker/login-action and docker/build-push-action) to trigger automated image packaging and publishing on every push to main.
+
+Asymmetric Secrets Storage: Stored container registry credentials (DOCKER_USERNAME and Docker Hub Personal Access Token DOCKER_PASSWORD) within GitHub Actions Encrypted Secrets, avoiding plaintext exposure.
+
+Pipeline Dependency Gating: Implemented explicit workflow gating (needs: unit-tests) to ensure Docker images are only built and pushed after all automated Pytest suites pass.
+
+Multi-Tagging Strategy: Tagged published images simultaneously with :latest (for simplified pull requests and active environments) and an immutable :${{ github.sha }} (for auditability and precise version tracking).
+
+Layer Cache Optimization: Structured the Dockerfile to copy requirements.txt and install dependencies prior to copying application source code, leveraging Docker cache layers during image generation.
+
+Impact
+
+Zero-Downtime Traceability: Every production-ready container image maps directly back to a specific Git commit SHA, eliminating version ambiguity and enabling rapid rollback to known good states.
+
+Shift-Left Reliability: Prevented broken builds and untested logic from ever reaching the container registry by strictly gating packaging behind automated unit tests.
+
+Build Acceleration: Drastically cut runner execution and container rebuild times by taking full advantage of cached dependency layers.
+
+Enhanced Security Posture: Replaced hardcoded credentials with fine-grained personal access tokens and encrypted secret injection, adhering to baseline DevSecOps practices.

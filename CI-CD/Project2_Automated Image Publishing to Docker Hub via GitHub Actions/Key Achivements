@@ -1,0 +1,20 @@
+Key Technical Achievements
+Automated CI Test Gating: Implemented automated test discovery and execution inside ephemeral Ubuntu runners using pytest. Configured dependency gating (needs: unit-tests) to prevent broken code from proceeding to the build and packaging stage.
+
+Build Time Optimization: Structured the Dockerfile with optimized layer ordering (copying requirements.txt and caching dependency installation before code copying), drastically cutting image rebuild times.
+
+Secure Registry Integration: Configured asymmetric GitHub Actions Repository Secrets (DOCKER_USERNAME, DOCKER_PASSWORD) to enable zero-exposure authentication against Docker Hub using the official docker/login-action.
+
+Multi-Tagging & Traceability: Automated image releases using docker/build-push-action, simultaneously generating a mutable :latest tag for immediate runtime consumption and an immutable :${{ github.sha }} tag for end-to-end auditability and instant rollbacks.
+
+Security & Permission Hardening: Resolved GitHub PAT authorization scopes by enforcing explicit workflow permissions for workflow file modifications.
+
+
+Bullet Points for Resume / LinkedIn
+Built and maintained a complete CI/CD pipeline using GitHub Actions, reducing manual deployment overhead by automating testing and container delivery to Docker Hub.
+
+Designed and configured an automated testing stage using Pytest with job gating to guarantee that only validated code branches trigger Docker image builds.
+
+Optimized container build performance leveraging Docker layer caching and implemented automated multi-tagging strategies utilizing unique Git commit SHAs for production traceability.
+
+Enforced DevSecOps best practices by eliminating plaintext credentials using GitHub Encrypted Secrets for all container registry authentication.
